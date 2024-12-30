@@ -1,4 +1,5 @@
 // !实现一个单线程调度器
+// todo 二周目再写延迟的任务
 import { getCurrentTime } from 'shared/utils';
 import {
     ImmediatePriority,
@@ -163,10 +164,11 @@ function workLoop(initialTimer: number) {
     currentTask = peek(taskQueue);
     while (currentTask !== null) {
         // 执行任务
-        // 是否到了交换控制权的时候
+        // !是否到了交换控制权的时候 如果时间没得就不执行
         if (currentTask.expirationTime > currentTime && shouldYieldToHost()) {
             break;
         }
+        // 里面逻辑不知道怎么处理的
         const callback = currentTask.callback;
         if (typeof callback === 'function') {
             currentTask.callback = null;
