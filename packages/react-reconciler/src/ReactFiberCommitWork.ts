@@ -19,7 +19,7 @@ function recursivelyTraverseMutationEffects(
 // fiber.flags
 // 新增插入
 function commitReconciliationEffects(finishedWork: Fiber) {
-    const flags = finishedWork.flags;
+    const flags = finishedWork.flags; // 是否是根阶段，如果是就已经汇总了下面的子阶段，则提交，否则跳过
     if (flags & Placement) {
         commitPlacement(finishedWork);
         finishedWork.flags &= ~Placement;

@@ -9,6 +9,7 @@ export function completeWork(
         case HostRoot: {
             return null;
         }
+        // 并没有将其挂载到dom上，而是在stateNode上挂载了子节点
         case HostComponent: {
             // type 是标签名
             const { type } = workInProgress;
@@ -46,7 +47,10 @@ function finalizwInitialChildren(domElement: Element, props: any) {
 
 function appendAllChildren(parent: Element, workInProgress: Fiber) {
     let nodeFiber = workInProgress.child;
-    if ( nodeFiber ) {
-        parent.appendChild(nodeFiber.stateNode);
+    while (nodeFiber !== null) {
+        if ( nodeFiber ) {
+            parent.appendChild(nodeFiber.stateNode);
+        }
+        nodeFiber = nodeFiber.sibling;
     }
 }
