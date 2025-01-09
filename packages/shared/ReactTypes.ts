@@ -20,6 +20,7 @@ export type ReactNode = ReactElement | ReactText | ReactFragment;
 
 export type ReactEmpty = null | void | boolean;
 
+// # 可迭代对象
 export type ReactFragment = ReactEmpty | Iterable<ReactNode>;
 
 export type ReactNodeList = ReactEmpty | ReactNode;

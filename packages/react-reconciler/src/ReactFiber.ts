@@ -11,10 +11,13 @@ export function createFiber(
     pendingProps: any,
     key: null | string,
 ): Fiber {
+    // return new (FiberNode as any)(tag, pendingProps, key);
     return new FiberNode(tag, pendingProps, key);
 }
 
+// 不这样写参数类型太多不整洁 用类的方式创建fiber节点
 function FiberNode(tag: WorkTag, pendingProps: any, key: null | string) {
+    // function FiberNode(this: Fiber, tag: WorkTag, pendingProps: any, key: null | string) {
     // 实例化一个fiber节点
     // 标记类型
     this.tag = tag;
@@ -50,18 +53,18 @@ function FiberNode(tag: WorkTag, pendingProps: any, key: null | string) {
     this.alternate = null;
 }
 
-// 根据ReactElement创建fiber节点
-export function createFiberFromElenment (
+// 根据ReactElement创建fiberFrom节点
+export function createFiberFromElement(
     element: ReactElement
 ): Fiber {
     const { type, key } = element;
     const pendingProps = element.props;
     const fiber = createFiberFromTypeAndProps(type, key, pendingProps);
-    return fiber; 
+    return fiber;
 }
 
 // 根据TypeAndProps创建fiber节点
-export function createFiberFromTypeAndProps (
+export function createFiberFromTypeAndProps(
     type: any,
     key: null | string,
     pendingProps: any
@@ -75,4 +78,41 @@ export function createFiberFromTypeAndProps (
     fiber.elementType = type;
     fiber.type = type;
     return fiber;
+}
+
+/**
+ * 创建一个workInProgress Fiber节点，用于更新过程中的新树构建, 把current属性赋值给alternate。
+ * @param current - 当前的Fiber节点，已经构建好的fiber。
+ * @param pendingProps - 新的props，将应用于workInProgress节点。
+ * @returns 返回新创建的workInProgress Fiber节点。
+ */
+export function createWorkInProgress(current: Fiber, pendingProps: any): Fiber {
+    let workInProgress = current.alternate;
+    if (workInProgress === null) {
+        workInProgress = createFiber(current.tag, pendingProps, current.key);
+        workInProgress.elementType = current.elementType;
+        workInProgress.type = current.type;
+        workInProgress.stateNode = current.stateNode;
+
+        workInProgress.alternate = current;
+        current.alternate = workInProgress;
+    } else {
+        workInProgress.pendingProps = pendingProps;
+        workInProgress.type = current.type;
+        workInProgress.flags = NoFlags;
+    }
+
+    workInProgress.flags = current.flags;
+    // workInProgress.childLanes = current.childLanes;
+    // workInProgress.lanes = current.lanes;
+
+    workInProgress.child = current.child;
+    workInProgress.memoizedProps = current.memoizedProps;
+    workInProgress.memoizedState = current.memoizedState;
+    // workInProgress.updateQueue = current.updateQueue;
+
+    workInProgress.sibling = current.sibling;
+    workInProgress.index = current.index;
+
+    return workInProgress;
 }

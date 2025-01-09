@@ -3,7 +3,6 @@ import type { Flags } from "./ReactFiberFlags";
 
 export type Fiber = {
     // 标记fiber的类型，即描述的组件类型，如原⽣标签、函数组件、类组件、Fragment等
-
     tag: WorkTag;
     // 标记组件在当前层级下的的唯⼀性
     key: null | string;
@@ -32,13 +31,15 @@ export type Fiber = {
     // 类组件 state
     // HostRoot RootState
     memoizedState: any;
-    // Effect
+    // Effect diff算法的标记
     flags: Flags;
     // 缓存fiber
     alternate: Fiber | null;
 };
 
 export type Container = Element | Document | DocumentFragment;
+
+// 比fiber节点多了一个containerInfo属性，存储了容器节点
 export type FiberRoot = {
     containerInfo: Container;
     current: Fiber;
