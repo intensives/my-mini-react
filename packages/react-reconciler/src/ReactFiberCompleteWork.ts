@@ -1,10 +1,11 @@
 import { isNum, isStr } from 'shared/utils';
 import type { Fiber } from './ReactInternalTypes';
-import { HostComponent, HostRoot } from './ReactWorkTags';
+import { HostComponent, HostRoot, HostText } from './ReactWorkTags';
 export function completeWork(
     current: Fiber | null,
     workInProgress: Fiber
 ): Fiber | null {
+    const newProps = workInProgress.pendingProps;
     switch (workInProgress.tag) {
         case HostRoot: {
             return null;
@@ -16,10 +17,14 @@ export function completeWork(
             // 1. 创建真实dom节点
             const instance = document.createElement(type);
             // 2. 初始化dom属性
-            finalizwInitialChildren(instance, workInProgress.pendingProps);
+            finalizwInitialChildren(instance, newProps);
             // 3. 把子dom挂载到父dom上
             appendAllChildren(instance, workInProgress);
             workInProgress.stateNode = instance;
+            return null;
+        }
+        case HostText: {
+            workInProgress.stateNode = document.createTextNode(newProps);
             return null;
         }
         throw new Error(

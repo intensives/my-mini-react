@@ -1,4 +1,4 @@
-import { createFiberFromElement } from "./ReactFiber";
+import { createFiberFromElement, createFiberFromText } from "./ReactFiber";
 
 import { REACT_ELEMENT_TYPE } from "shared/ReactSymbols";
 import { Placement } from "./ReactFiberFlags";
@@ -36,9 +36,24 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
         return createdFiber;
         // 新老 vdom diff
     }
+    // 协调单个⽂本节点
+    function reconcileSingleTextNode(
+        returnFiber: Fiber,
+        currentFirstChild: Fiber | null,
+        textContent: string
+    ) {
+        const createdFiber = createFiberFromText(textContent);
+        createdFiber.return = returnFiber;
+        return createdFiber;
+    }
 
 
     function createChild(returnFiber: Fiber, newChild: any) {
+        if (isText(newChild)) {
+            const createdFiber =  createFiberFromText(newChild + "");
+            createdFiber.return = returnFiber;
+            return createdFiber;
+        }
         if (typeof newChild === "object" && newChild !== null) {
             switch (newChild.$$typeof) {
                 case REACT_ELEMENT_TYPE:
@@ -56,18 +71,18 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
         // 第一个fiber
         let resultingFirstChild: Fiber | null = null;
         let previousNewFiber: Fiber | null = null;
-    
+
         let oldFiber = currentFirstChild;
-    
+
         let newIdx = 0;
-    
+
         if (oldFiber === null) {
             for (; newIdx < newChildren.length; newIdx++) {
                 const newFiber = createChild(returnFiber, newChildren[newIdx]);
                 if (newFiber === null) {
                     continue;
                 }
-    
+
                 newFiber.index = newIdx;
                 if (previousNewFiber === null) {
                     resultingFirstChild = newFiber;
@@ -75,7 +90,7 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
                     previousNewFiber.sibling = newFiber;
                 }
                 previousNewFiber = newFiber;
-    
+
             }
             return resultingFirstChild;
         }
@@ -86,7 +101,13 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
         currentFirstChild: Fiber | null,
         newChild: any
     ) {
-        // 单个节点、数组、⽂本
+        // 文本节点
+        if (isText(newChild)) {
+            return placeSingleChild(
+                reconcileSingleTextNode(returnFiber, currentFirstChild, newChild + "")
+            );
+        }
+        // 单个节点、数组
         if (typeof newChild === "object" && newChild !== null) {
             switch (newChild.$$typeof) {
                 case REACT_ELEMENT_TYPE:
@@ -102,4 +123,11 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
     }
     // todo 数组、⽂本
     return reconcileChildFibers;
+}
+
+function isText(newChild: any) {
+    return (
+        (typeof newChild === "string" && newChild !== "") ||
+        typeof newChild === "number"
+    );
 }
