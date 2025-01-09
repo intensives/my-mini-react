@@ -1,6 +1,6 @@
 import { isNum, isStr } from 'shared/utils';
 import type { Fiber } from './ReactInternalTypes';
-import { HostComponent, HostRoot, HostText } from './ReactWorkTags';
+import { Fragment, HostComponent, HostRoot, HostText } from './ReactWorkTags';
 import { reconcileChildFibers, mountChildFibers } from './ReactChildFiber';
 // !1.处理当前fiber, 不同组件类型对应不同的处理逻辑
 // !2. 返回子节点的child
@@ -16,6 +16,8 @@ export function beginWork(
             return updateHostComponent(current, workInProgress);
         case HostText:
             return updateHostText(current, workInProgress);
+        case Fragment:
+            return updateHostFragment(current, workInProgress);
     }
     throw new Error(
         `Unknown unit of work tag (${workInProgress.tag}). This error is l
@@ -48,6 +50,12 @@ function updateHostComponent(current: Fiber | null, workInProgress: Fiber) {
 
 function updateHostText(current: Fiber | null, workInProgress: Fiber) {
     return null;
+}
+
+function updateHostFragment(current: Fiber | null, workInProgress: Fiber) {
+    const nextChildren = workInProgress.pendingProps.children;
+    reconcileChildren(current, workInProgress, nextChildren);
+    return workInProgress.child;
 }
 // 协调子节点 构建新的fiber树
 function reconcileChildren(

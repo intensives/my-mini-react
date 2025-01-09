@@ -1,12 +1,13 @@
 import { isNum, isStr } from 'shared/utils';
 import type { Fiber } from './ReactInternalTypes';
-import { HostComponent, HostRoot, HostText } from './ReactWorkTags';
+import { Fragment, HostComponent, HostRoot, HostText } from './ReactWorkTags';
 export function completeWork(
     current: Fiber | null,
     workInProgress: Fiber
 ): Fiber | null {
     const newProps = workInProgress.pendingProps;
     switch (workInProgress.tag) {
+        case Fragment:
         case HostRoot: {
             return null;
         }
@@ -51,11 +52,33 @@ function finalizwInitialChildren(domElement: Element, props: any) {
 }
 
 function appendAllChildren(parent: Element, workInProgress: Fiber) {
-    let nodeFiber = workInProgress.child;
+    let nodeFiber = workInProgress.child; // 链表结构
     while (nodeFiber !== null) {
-        if ( nodeFiber ) {
+        // 正常节点
+        if (isHost(nodeFiber)) {
             parent.appendChild(nodeFiber.stateNode);
+        } else if (nodeFiber.child !== null) {
+            nodeFiber = nodeFiber.child;
+            continue;
+        }
+
+        // 如果往上找到当前节点
+        if (nodeFiber === workInProgress) {
+            return ;
+        }
+
+        while (nodeFiber.sibling === null) {
+            if (nodeFiber.return === null || nodeFiber.return === workInProgress) {
+                return ;
+            }
+            nodeFiber = nodeFiber.return; // f**k 
         }
         nodeFiber = nodeFiber.sibling;
     }
+}
+
+
+// fiber是dom节点 不是fragment
+export function isHost(fiber: Fiber): boolean {
+    return fiber.tag === HostComponent || fiber.tag === HostText;
 }

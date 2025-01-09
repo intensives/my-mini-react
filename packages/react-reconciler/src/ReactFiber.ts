@@ -2,8 +2,9 @@ import { ReactElement } from "shared/ReactTypes";
 import { NoFlags } from "./ReactFiberFlags";
 import type { Fiber } from './ReactInternalTypes'
 import { isStr } from 'shared/utils';
-import { HostComponent, HostText } from "./ReactWorkTags";
+import { Fragment, HostComponent, HostText } from "./ReactWorkTags";
 import { IndeterminateComponent, WorkTag } from "./ReactWorkTags";
+import { REACT_FRAGMENT_TYPE } from "shared/ReactSymbols";
 
 // 创建一个fiber节点
 export function createFiber(
@@ -73,6 +74,8 @@ export function createFiberFromTypeAndProps(
     if (isStr(type)) {
         // 原生标签
         fiberTag = HostComponent;
+    } else if(type === REACT_FRAGMENT_TYPE) {
+        fiberTag = Fragment
     }
     const fiber = createFiber(fiberTag, pendingProps, key);
     fiber.elementType = type;

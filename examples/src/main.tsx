@@ -1,10 +1,18 @@
 import { ReactDOM } from "../which-react";
 import "./index.css";
 
-
+const fragment1 = (
+  <>
+    <h3>1</h3>
+    <h3>2</h3>
+  </>
+)
 const jsx = (
   <div className="box border">
     <h1 className="border">omg</h1>
+    <h2>react</h2>
+    { fragment1 }
+    omg
   </div>
 )
 

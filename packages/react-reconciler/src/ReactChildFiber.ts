@@ -62,6 +62,7 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
                     return createdFiber;
             }
         }
+        return null;
     }
     function reconcileChildrenArray(
         returnFiber: Fiber,
