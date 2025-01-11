@@ -100,7 +100,7 @@ function performUnitOfWork(unitOfWork: Fiber): void {
     const current = unitOfWork.alternate;
 
     const next = beginWork(current, unitOfWork);
-    // !把pendingProp更新到memoizedProp
+    // !把pendingProp更新到memoizedProp 子节点在创建fiber时已经把pendingProps属性赋值了
     unitOfWork.memoizedProps = unitOfWork.pendingProps;
     // 构建一条支路的fiber树
     if (next === null) {

@@ -8,7 +8,7 @@ export function completeWork(
     const newProps = workInProgress.pendingProps;
     switch (workInProgress.tag) {
         case Fragment:
-        case ClassComponent: 
+        case ClassComponent:
         case FunctionComponent:
         case HostRoot: {
             return null;
@@ -30,10 +30,10 @@ export function completeWork(
             workInProgress.stateNode = document.createTextNode(newProps);
             return null;
         }
-        throw new Error(
-            `Unknown unit of work tag (${workInProgress.tag}). This error is l ` + 
-            "React. Please file an issue."
-        );
+            throw new Error(
+                `Unknown unit of work tag (${workInProgress.tag}). This error is l ` +
+                "React. Please file an issue."
+            );
     }
     return null;
 }
@@ -47,8 +47,13 @@ function finalizwInitialChildren(domElement: Element, props: any) {
                 domElement.textContent = String(nextProp);
             }
         } else {
-            // 设置属性
-            (domElement as any)[propKey] = nextProp;
+            // 设置事件
+            if (propKey === 'onClick') {
+                domElement.addEventListener('click', nextProp);
+            } else {
+                // 设置属性
+                (domElement as any)[propKey] = nextProp;
+            }
         }
     }
 }
@@ -66,12 +71,12 @@ function appendAllChildren(parent: Element, workInProgress: Fiber) {
 
         // 如果往上找到当前节点
         if (nodeFiber === workInProgress) {
-            return ;
+            return;
         }
 
         while (nodeFiber.sibling === null) {
             if (nodeFiber.return === null || nodeFiber.return === workInProgress) {
-                return ;
+                return;
             }
             nodeFiber = nodeFiber.return; // f**k 
         }

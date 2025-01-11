@@ -2,6 +2,7 @@ import { isNum, isStr } from 'shared/utils';
 import type { Fiber } from './ReactInternalTypes';
 import { ClassComponent, Fragment, FunctionComponent, HostComponent, HostRoot, HostText } from './ReactWorkTags';
 import { reconcileChildFibers, mountChildFibers } from './ReactChildFiber';
+import { renderWithHooks } from './ReactFiberHooks';
 // !1.处理当前fiber, 不同组件类型对应不同的处理逻辑
 // !2. 返回子节点的child
 export function beginWork(
@@ -76,8 +77,10 @@ function updateClassComponent(current: Fiber | null, workInProgress: Fiber) {
 
 function updateFunctionComponent(current: Fiber | null, workInProgress: Fiber) {
     const { type, pendingProps } = workInProgress;
-    // 构造一个类对象
-    const children = new type(pendingProps);
+    // 构造一个类对象 函数组件转义和直接写标签一样，在标签中的变量值变为textNode
+    // const children = new type(pendingProps); 
+    //  组件和hooks通信
+    const children = renderWithHooks(current, workInProgress, type, pendingProps);
     // workInProgress.stateNode = instance;
 
     reconcileChildren(current, workInProgress, children);
@@ -99,7 +102,7 @@ function reconcileChildren(
             nextChildren
         );
     } else {
-        // 更新 有child
+        // 更新 有child fiberRoot节点
         workInProgress.child = reconcileChildFibers(
             workInProgress,
             current.child,

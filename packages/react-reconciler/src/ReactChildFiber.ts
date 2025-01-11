@@ -18,6 +18,7 @@ export const mountChildFibers: ChildReconciler = createChildReconciler(false);
 
 // wrapper function
 function createChildReconciler(shouldTrackSideEffects: boolean) {
+    // 标记为dom节点
     function placeSingleChild(newFiber: Fiber) {
         if (shouldTrackSideEffects && newFiber.alternate === null) {
             newFiber.flags |= Placement; // 是否添加到dom的标记
@@ -78,6 +79,7 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
         let newIdx = 0;
 
         if (oldFiber === null) {
+            // 链表
             for (; newIdx < newChildren.length; newIdx++) {
                 const newFiber = createChild(returnFiber, newChildren[newIdx]);
                 if (newFiber === null) {
