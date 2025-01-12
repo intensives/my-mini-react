@@ -1,25 +1,28 @@
 import { isFn } from "shared/utils";
-import type { Fiber } from "./ReactInternalTypes";
+import type { Fiber, FiberRoot } from "./ReactInternalTypes";
+import { scheduleUpdateOnFiber } from "./ReactFiberWorkLoop";
+import { HostRoot } from "./ReactWorkTags";
 
 type Hook = {
     memoizedState: any;
     next: Hook | null;
 }
 
+// 当前正在工作的函数组件的fiber
 let currentlyRenderingFiber: Fiber | null = null;
 let workInProgressHook: Hook | null = null;
 let currentHook: Hook | null = null;
 
-export function renderWithHooks(
+export function renderWithHooks<Props>(
     current: Fiber | null,
     workInProgress: Fiber,
     Component: any,
-    props: any
-) {
+    props: Props,
+) : any{
     currentlyRenderingFiber = workInProgress;
     workInProgress.memoizedState = null;
 
-    const children = Component(props);
+    let children = Component(props);
     // 置为空 开头不需要本来就是空
     finishRenderingHooks();
     return children;
@@ -30,6 +33,45 @@ export function finishRenderingHooks() {
     workInProgressHook = null;
     currentHook = null;
 }
+
+// 1. 返回当前useX函数对应的hook
+// 2. 构建hook链表
+function updateWorkInProgressHook(): Hook {
+    let hook: Hook;
+    // currentlyRenderingFiber不是置为空了吗？
+    const current = currentlyRenderingFiber?.alternate;
+    if (current) {
+        // update 阶段
+        currentlyRenderingFiber!.memoizedState = current.memoizedState;
+        if (workInProgressHook != null) {
+            // 不是第一个hook
+            workInProgressHook = hook = workInProgressHook.next!;
+            currentHook = currentHook!.next as Hook;
+        } else {
+            // 第一个hook
+            workInProgressHook = hook = currentlyRenderingFiber!.memoizedState;
+            currentHook = current.memoizedState;
+        }
+    } else {
+        // mount 阶段
+        currentHook = null;
+        hook = {
+            memoizedState: null,
+            next: null
+        };
+
+        // 保证了要么是第一个hook，要么是链表的最后一个hook
+        if (workInProgressHook) {
+            // 第一个hook
+            workInProgressHook = workInProgressHook.next = hook;
+        } else {
+            // 链表
+            workInProgressHook = currentlyRenderingFiber!.memoizedState = hook;
+        }
+
+    }
+    return hook;
+}
 // S函数 I初始值 A init函数
 export function useReducer<S, I, A>(
     reducer: (state: S, action: A) => S,
@@ -37,22 +79,54 @@ export function useReducer<S, I, A>(
     init?: (initialArg: I) => S
 ) {
     // ! 1构建hooks链表
-    const hook: Hook = {
-        memoizedState: null,
-        next: null
-    };
+    const hook: Hook = updateWorkInProgressHook();
     let initialState: S;
-    if (init !== undefined && isFn(init)) {
+    // if (init !== undefined && isFn(init)) {
+    if (init !== undefined) {
         initialState = init(initialArg);
     } else {
         initialState = initialArg as any;
     }
     // ! 2. 判断是否是第一次渲染
-    hook.memoizedState = initialState;
+    if (!currentlyRenderingFiber?.alternate) {
+        hook.memoizedState = initialState;
+    }
     // ! 3. 调度更新 dispatch
-    const dispatch = (action: A) => {
-        const newValue = reducer(initialState, action);
-    };
-    hook.memoizedState = initialState;
+    // 柯里化 这样也可以
+    const dispatch = dispatchReducerAction.bind(
+        null, 
+        currentlyRenderingFiber!, 
+        hook, 
+        reducer as any
+    );
     return [hook.memoizedState, dispatch];
+}
+
+function dispatchReducerAction<S, I, A> (
+    fiber: Fiber,
+    hook: Hook,
+    reducer: (state: S, action: A) => S,
+    action: any
+) {
+    // 通用 考虑useState函数和useReducer函数
+    hook.memoizedState = reducer ? reducer(hook.memoizedState, action) : action;
+
+    const root = gerRootForUpdateFiber(fiber);
+    
+    fiber.alternate = { ...fiber };
+    if (fiber.sibling) {
+        fiber.sibling.alternate = fiber.sibling
+    }
+    // 调度更新
+    scheduleUpdateOnFiber(root, fiber);
+}
+
+function gerRootForUpdateFiber(sourceFiber: Fiber): FiberRoot {
+    let node = sourceFiber;
+    let parent = node.return;
+    while (parent !== null) { 
+        node = parent;
+        parent = node.return;
+    }
+    return node.tag === HostRoot ? node.stateNode : null;
 }

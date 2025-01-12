@@ -17,13 +17,18 @@ export function completeWork(
         case HostComponent: {
             // type 是标签名
             const { type } = workInProgress;
-            // 1. 创建真实dom节点
-            const instance = document.createElement(type);
-            // 2. 初始化dom属性
-            finalizwInitialChildren(instance, newProps);
-            // 3. 把子dom挂载到父dom上
-            appendAllChildren(instance, workInProgress);
-            workInProgress.stateNode = instance;
+            if (current !== null && workInProgress.stateNode !== null) {
+                // 更新阶段
+                updateHostComponent(current, workInProgress, type, newProps);
+            } else {
+                // 1. 创建真实dom节点
+                const instance = document.createElement(type);
+                // 2. 初始化dom属性
+                finalizeInitialChildren(instance, null, newProps);
+                // 3. 把子dom挂载到父dom上
+                appendAllChildren(instance, workInProgress);
+                workInProgress.stateNode = instance;
+            }
             return null;
         }
         case HostText: {
@@ -38,9 +43,51 @@ export function completeWork(
     return null;
 }
 
-function finalizwInitialChildren(domElement: Element, props: any) {
-    for (const propKey in props) {
-        const nextProp = props[propKey];
+function updateHostComponent(
+    current: Fiber,
+    workInProgress: Fiber,
+    type: string,
+    newProps: any
+) {
+    if (current.memoizedProps === newProps) {
+        return; // 只有一个
+    }
+    finalizeInitialChildren(
+        workInProgress.stateNode as Element,
+        current.memoizedProps,
+        newProps
+    );
+}
+
+function finalizeInitialChildren(
+    domElement: Element, 
+    prevProps: any,
+    nextProps: any
+) {
+    // 真tm寒掺
+    for (const propKey in prevProps) {
+        const prevProp = prevProps[propKey];
+        if (propKey === 'children') {
+            if (isStr(prevProp) || isNum(prevProp)) {
+                // 文本节点 置不置空无所谓
+                domElement.textContent = "";
+            }
+        } else {
+            // 设置事件
+            if (propKey === 'onClick') {
+                domElement.removeEventListener('click', prevProp);
+            } else {
+                if (!(prevProp in nextProps)) {
+                    // 设置属性
+                    (domElement as any)[propKey] = "";
+                }
+            }
+        }
+    }
+
+
+    for (const propKey in nextProps) {
+        const nextProp = nextProps[propKey];
         if (propKey === 'children') {
             if (isStr(nextProp) || isNum(nextProp)) {
                 // 文本节点
@@ -57,6 +104,49 @@ function finalizwInitialChildren(domElement: Element, props: any) {
         }
     }
 }
+
+// 初始化属性
+
+// function finalizeInitialChildren(
+//     domElement: Element,
+//     prevProps: any,
+//     nextProps: any
+// ) {
+//     for (const propKey in prevProps) {
+//         const prevProp = prevProps[propKey];
+//         if (propKey === "children") {
+//             if (isStr(prevProp) || isNum(prevProp)) {
+//                 // 属性
+//                 domElement.textContent = "";
+//             }
+//         } else {
+//             // 3. 设置属性
+//             if (propKey === "onClick") {
+//                 domElement.removeEventListener("click", prevProp);
+//             } else {
+//                 if (!(prevProp in nextProps)) {
+//                     (domElement as any)[propKey] = "";
+//                 }
+//             }
+//         }
+//     }
+//     for (const propKey in nextProps) {
+//         const nextProp = nextProps[propKey];
+//         if (propKey === "children") {
+//             if (isStr(nextProp) || isNum(nextProp)) {
+//                 // 属性
+//                 domElement.textContent = nextProp + "";
+//             }
+//         } else {
+//             // 3. 设置属性
+//             if (propKey === "onClick") {
+//                 domElement.addEventListener("click", nextProp);
+//             } else {
+//                 (domElement as any)[propKey] = nextProp;
+//             }
+//         }
+//     }
+// }
 
 function appendAllChildren(parent: Element, workInProgress: Fiber) {
     let nodeFiber = workInProgress.child; // 链表结构

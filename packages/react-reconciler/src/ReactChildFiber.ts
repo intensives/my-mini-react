@@ -1,4 +1,4 @@
-import { createFiberFromElement, createFiberFromText } from "./ReactFiber";
+import { createFiberFromElement, createFiberFromText, createWorkInProgress } from "./ReactFiber";
 
 import { REACT_ELEMENT_TYPE } from "shared/ReactSymbols";
 import { Placement } from "./ReactFiberFlags";
@@ -16,6 +16,13 @@ type ChildReconciler = (
 export const reconcileChildFibers: ChildReconciler = createChildReconciler(true);
 export const mountChildFibers: ChildReconciler = createChildReconciler(false);
 
+
+function useFiber(fiber: Fiber, pendingProps: any) {
+    const clone = createWorkInProgress(fiber, pendingProps);
+    clone.index = 0;
+    clone.sibling = null;
+    return clone;
+}
 // wrapper function
 function createChildReconciler(shouldTrackSideEffects: boolean) {
     // 标记为dom节点
@@ -29,10 +36,32 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
     function reconcileSingleElement(
         returnFiber: Fiber,
         currentFirstChild: Fiber | null,
-        newChild: ReactElement
+        element: ReactElement
     ) {
+        // 更新，节点复用的条件 同一层级、key相同、类型相同 
+        const key = element.key;
+        let child = currentFirstChild;
+
+        while (child !== null) {
+            if (child.key === key) {
+                const elementType = element.type;
+                if (child.elementType === elementType) {
+                    // todo 后面其他fiber可以删除？？？ 不是引用吗
+                    const existing = useFiber(child, element.props);
+                    existing.return = returnFiber;
+                    return existing;
+                } else {
+                    // 前提条件 如果多个相同的key react否定这种情况 
+                    break;
+                }
+            } else {
+                // todo 删除单个节点
+                // deleteChild 
+            }
+            child = child.sibling; // 继续遍历
+        }
         // 初次渲染
-        const createdFiber = createFiberFromElement(newChild);
+        const createdFiber = createFiberFromElement(element);
         createdFiber.return = returnFiber;
         return createdFiber;
         // 新老 vdom diff

@@ -82,7 +82,10 @@ function prepareFreshStack(root: FiberRoot): Fiber {
 
     workInProgressRoot = root; // FiberRoot
     const rootWorkInProgress = createWorkInProgress(root.current, null);
-    workInProgress = rootWorkInProgress; // Fiber
+    // 初次渲染
+    if (workInProgress === null) {
+        workInProgress = rootWorkInProgress; // Fiber
+    }
 
     return rootWorkInProgress;
 }

@@ -35,6 +35,10 @@ function updateHostRoot(current: Fiber | null, workInProgress: Fiber) {
     const nextChildren = workInProgress.memoizedState.element;
     // 协调子节点
     reconcileChildren(current, workInProgress, nextChildren);
+
+    if (current) {
+        current.child = workInProgress.child;
+    }
     return workInProgress.child;
 }
 // 处理原生标签 div span p等
