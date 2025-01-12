@@ -41,15 +41,23 @@ function FunctionComponent() {
   return (
     <div className="border">
       {/* f**k */}
-      {/* <h3>函数组件</h3> */} 
-      <button
-        onClick={() => {
-          setCount1();
-          // console.log("click"); //sy-log
-        }}
-      >
-        {count1}
-      </button>
+      {/* <h3>函数组件</h3> */}
+      {count1 % 2 === 0 ? (
+        <button
+          onClick={() => {
+            setCount1();
+            // console.log("click"); //sy-log
+          }}
+        >
+          {count1}
+        </button>) :
+        <span
+          onClick={() => {
+            setCount1();
+            // console.log("click"); //sy-log
+          }}
+          >React</span>
+      }
     </div>
   );
 }

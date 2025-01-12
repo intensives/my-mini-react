@@ -35,6 +35,9 @@ export type Fiber = {
     flags: Flags;
     // 缓存fiber
     alternate: Fiber | null;
+
+    // 记录需要删除的节点数组
+    deletions: Array<Fiber> | null;
 };
 
 export type Container = Element | Document | DocumentFragment;

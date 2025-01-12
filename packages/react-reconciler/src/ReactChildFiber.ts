@@ -1,7 +1,7 @@
 import { createFiberFromElement, createFiberFromText, createWorkInProgress } from "./ReactFiber";
 
 import { REACT_ELEMENT_TYPE } from "shared/ReactSymbols";
-import { Placement } from "./ReactFiberFlags";
+import { ChildDeletion, Placement } from "./ReactFiberFlags";
 import { ReactElement } from "shared/ReactTypes";
 import { isArray } from "shared/utils";
 import type { Fiber } from "./ReactInternalTypes";
@@ -25,6 +25,29 @@ function useFiber(fiber: Fiber, pendingProps: any) {
 }
 // wrapper function
 function createChildReconciler(shouldTrackSideEffects: boolean) {
+    function deleteChild(returnFiber: Fiber, childToDelete: Fiber) {
+        const deletions = returnFiber.deletions;
+        if (!shouldTrackSideEffects) {
+            // 初次渲染
+            return;
+        }
+        if (deletions === null) {
+            returnFiber.deletions = [childToDelete];
+            returnFiber.flags |= ChildDeletion;
+        } else {
+            returnFiber.deletions!.push(childToDelete);
+        }
+    }
+
+    function deleteRemainingChildren(returnFiber: Fiber, currentFirstChild: Fiber) {
+        let childToDelete = currentFirstChild;
+        while (childToDelete !== null) {
+            deleteChild(returnFiber, childToDelete);
+            childToDelete = childToDelete.sibling;
+        }
+
+        return null;
+    }
     // 标记为dom节点
     function placeSingleChild(newFiber: Fiber) {
         if (shouldTrackSideEffects && newFiber.alternate === null) {
@@ -52,11 +75,14 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
                     return existing;
                 } else {
                     // 前提条件 如果多个相同的key react否定这种情况 
+                    deleteRemainingChildren(returnFiber, child);
                     break;
                 }
             } else {
-                // todo 删除单个节点
-                // deleteChild 
+                // 删除单个节点
+                // ？？？ 如果child不能复用，删除 但是它是一个列表，第一个不能对应上第二个可以吧 重构fiber树？ 
+                // ans react设计理念 启发式
+                deleteChild(returnFiber, child);
             }
             child = child.sibling; // 继续遍历
         }
@@ -80,7 +106,7 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
 
     function createChild(returnFiber: Fiber, newChild: any) {
         if (isText(newChild)) {
-            const createdFiber =  createFiberFromText(newChild + "");
+            const createdFiber = createFiberFromText(newChild + "");
             createdFiber.return = returnFiber;
             return createdFiber;
         }

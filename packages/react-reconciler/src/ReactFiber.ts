@@ -52,6 +52,9 @@ function FiberNode(tag: WorkTag, pendingProps: any, key: null | string) {
 
     // 缓存fiber
     this.alternate = null;
+
+    // 记录需要删除的节点
+    this.deletions = null;
 }
 
 // 根据ReactElement创建fiberFrom节点

@@ -1,5 +1,5 @@
 import { isHost } from "./ReactFiberCompleteWork";
-import { Placement } from "./ReactFiberFlags";
+import { ChildDeletion, Placement } from "./ReactFiberFlags";
 import { Fiber, FiberRoot } from "./ReactInternalTypes";
 import { HostComponent, HostRoot, HostText } from "./ReactWorkTags";
 // 递归遍历fiber树 前面递归 后面构建fiber树
@@ -24,6 +24,39 @@ function commitReconciliationEffects(finishedWork: Fiber) {
     if (flags & Placement) {
         commitPlacement(finishedWork);
         finishedWork.flags &= ~Placement;
+    }
+
+    if (flags & ChildDeletion) {
+        // 获取⽗dom节点对应的fiber
+        const parentFiber = isHostParent(finishedWork) ? finishedWork : getHostParentFiber(finishedWork);
+        const parentDom = parentFiber.stateNode;
+        commitDeletions(finishedWork.deletions, parentDom);
+        finishedWork.flags &= ~ChildDeletion;
+        finishedWork.deletions = null;
+    }
+}
+
+// 删除dom节点
+function commitDeletions(
+    deletions: Array<Fiber> | null, 
+    parentDom: Element | DocumentFragment | Document 
+) {
+    deletions!.forEach(deletion => {
+        parentDom.removeChild(getStateNode(deletion));
+    });
+}
+
+// 获取fiber对应的dom节点
+function getStateNode(fiber: Fiber)   {
+    let node = fiber;
+    while (1) {
+        if (isHost(node) && node.stateNode) {
+            return node.stateNode;
+        }
+        node = node.child as Fiber;
+        if (node === null) {
+            throw new Error("Expected to find a host node. This error is likely caused by a bug in React. Please file an issue.");
+        }
     }
 }
 // 在dom上，把⼦节点插入到⽗节点⾥
