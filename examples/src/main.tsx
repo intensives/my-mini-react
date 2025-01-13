@@ -35,29 +35,33 @@ class ClassComponent extends Component {
 // } 
 
 function FunctionComponent() {
-  const [count1, setCount1] = useReducer((x) => x + 1, 0);
-
-  console.log('%c [  ]-40', 'font-size:13px; background:pink; color:#bf2c9f;', count1);
+  const [count1, setCount1] = useReducer((x) => x + 1, 1);
+  const [count2, setCount2] = useState(1);
+  // const arr = count1 % 2 === 0 ? [0, 1, 2, 3, 4] : [0, 1, 2, 3];
+  // const arr = count1 % 2 === 0 ? [0, 1, 2, 3, 4] : [0, 1, 2, 4];
+  const arr = count1 % 2 === 0 ?  [0, 1, 2, 3, 4] : [3, 1, 0, 4, 2];
+  // old 0, 1, 2, 4
+  // new 0, 1, 2, 3, 4
+  // 1个before 4
+  // old 3, 2, 0, 4, 1
+  // new 0, 1, 2, 3, 4
+  // 3个before null
+  // 0 删除
   return (
     <div className="border">
-      {/* f**k */}
-      {/* <h3>函数组件</h3> */}
-      {count1 % 2 === 0 ? (
-        <button
-          onClick={() => {
-            setCount1();
-            // console.log("click"); //sy-log
-          }}
-        >
-          {count1}
-        </button>) :
-        <span
-          onClick={() => {
-            setCount1();
-            // console.log("click"); //sy-log
-          }}
-          >React</span>
-      }
+      <h3>函数组件</h3>
+      <button
+        onClick={() => {
+          setCount1();
+        }}
+      >
+        {count1}
+      </button>
+      <ul>
+        {arr.map((item) => (
+          <li key={"li" + item}>{item}</li>
+        ))}
+      </ul>
     </div>
   );
 }

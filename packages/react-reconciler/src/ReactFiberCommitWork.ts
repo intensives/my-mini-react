@@ -59,18 +59,64 @@ function getStateNode(fiber: Fiber)   {
         }
     }
 }
+
+function getHostSibling(fiber: Fiber) {
+    let node = fiber;
+    sibling: while (1) {
+       while (node.sibling === null) {
+         if (node.return === null || isHostParent(node.return)) {
+            return null;
+         }
+         node = node.return;
+       }
+       node = node.sibling; 
+       while ( !isHost(node) ) {
+          // 新增插入|移动位置
+          if (node.flags & Placement) {
+              continue sibling;
+          }
+          if (node.child === null) {
+             continue sibling; 
+          } else {
+              node = node.child;
+          }
+       }
+
+       // hostComponent|hostText
+       if (!(node.flags & Placement)) {
+              return node.stateNode;
+       }
+    }
+    return null;
+}
+
+// 是否存在before
+function insertOrAppendPlacementNode(
+    node: Fiber, 
+    before: Element,
+    parent: Element
+) {
+    if (before) {
+        parent.insertBefore(getStateNode(node), before); 
+    } else {
+        parent.appendChild(getStateNode(node));
+    }
+}
 // 在dom上，把⼦节点插入到⽗节点⾥
 function commitPlacement(finishedWork: Fiber) {
-    const parentFiber = getHostParentFiber(finishedWork);
     // 插入⽗dom
     if (finishedWork.stateNode && isHost(finishedWork)) {
+        const parentFiber = getHostParentFiber(finishedWork);
         // 获取⽗dom节点
-        let parent = parentFiber.stateNode;
-        if (parent.containerInfo) {
-            parent = parent.containerInfo;
+        let parentDom = parentFiber.stateNode;
+        if (parentDom.containerInfo) {
+            parentDom = parentDom.containerInfo;
         }
         // dom节点
-        parent.appendChild(finishedWork.stateNode);
+        // 遍历fiber树，寻找finishedWork的兄弟节点，并且这个siblings是dom节点, 且是更新的节点，在本轮中不发生移动
+        const before = getHostSibling(finishedWork);
+        insertOrAppendPlacementNode(finishedWork, before, parentDom);
+        // parent.appendChild(finishedWork.stateNode);
     } else {
         // 第二种fragment
         let kid = finishedWork.child;

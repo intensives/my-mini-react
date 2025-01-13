@@ -5,6 +5,7 @@ import { ChildDeletion, Placement } from "./ReactFiberFlags";
 import { ReactElement } from "shared/ReactTypes";
 import { isArray } from "shared/utils";
 import type { Fiber } from "./ReactInternalTypes";
+import { HostText } from "./ReactWorkTags";
 
 
 type ChildReconciler = (
@@ -120,6 +121,132 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
         }
         return null;
     }
+
+    function updateTextNode(
+        returnFiber: Fiber,
+        current: Fiber | null,
+        textContent: string
+    ) {
+        if (current == null || current.tag !== HostText) {
+            // 老节点不是文本
+            const created = createFiberFromText(textContent);
+            created.return = returnFiber;
+            return created;
+        } else {
+            const existing = useFiber(current!, textContent);
+            existing.return = returnFiber;
+            return existing;
+        }
+    }
+
+    function updateElement(
+       returnFiber: Fiber,
+       current: Fiber | null,
+       element: ReactElement 
+    ) {
+        const elementType = element.type;
+        if (current !== null) {
+            if (current.elementType === elementType) {
+               // 可以复用
+                const existing = useFiber(current, element.props);
+                existing.return = returnFiber;
+                return existing; 
+            }
+        }
+        // 不可以复用
+        const created = createFiberFromElement(element);
+        created.return = returnFiber;
+        return created;
+    }
+
+    function updateSlot(
+        returnFiber: Fiber,
+        oldFiber: Fiber | null,
+        newChild: any
+    ) {
+        // 判断是否可以复用
+        const key = oldFiber !== null ? oldFiber.key : null;
+        if (isText(newChild)) {
+            if (key !== null) {
+                // 新节点是文本，老节点不是问题 文本没有key
+                return null;
+            }
+            // 有可能可以复用
+            return updateTextNode(returnFiber, oldFiber, "" + newChild);
+        }
+
+        if ( typeof newChild === "object" && newChild !== null) {
+            if (newChild.key === key) {
+                // 进入下一个判断
+               return updateElement(returnFiber, oldFiber, newChild); 
+            } else {
+                return null;
+            }
+        }
+    }
+
+    function placeChild(
+        newFiber: Fiber,
+        lastPlacedIndex: number, // 记录上一个fiber在老fiber上位置
+        newIdx: number
+    ){
+        newFiber.index = newIdx;
+
+        if (!shouldTrackSideEffects) {
+            return lastPlacedIndex;
+        }
+        // 判断节点位置是否发送相对位置变化， 是否需要移动
+        const current = newFiber.alternate;
+
+        if (current!== null) {
+            const oldIndex = current.index;
+            if (oldIndex < lastPlacedIndex) {
+                // 不需要移动
+                newFiber.flags |= Placement;
+                return lastPlacedIndex;
+            } else {
+                // 需要移动
+                return lastPlacedIndex;
+            }
+        } else {
+            // 节点新增
+            newFiber.flags |= Placement;
+            return lastPlacedIndex;
+        }
+    }
+
+    // 构建fiber map
+    function mapRemainingChildren(oldFiber: Fiber): Map<string | number, Fiber> {
+        const existingChildren: Map<string | number, Fiber> = new Map();
+        let existingChild: Fiber | null = oldFiber;
+        while (existingChild !== null) {
+            if (existingChild.key !== null) {
+                existingChildren.set(existingChild.key, existingChild);
+            } else {
+                existingChildren.set(existingChild.index, existingChild);
+            }
+            existingChild = existingChild.sibling;
+        }
+        return existingChildren;
+    }
+
+    function updateFromMap(
+        existingChildren: Map<string | number, Fiber>,
+        returnFiber: Fiber,
+        newIdx: number,
+        newChild: any
+    ) {
+        if (isText(newChild)) {
+            // 文本节点
+            const matchedFiber = existingChildren.get(newIdx) || null;
+            return updateTextNode(returnFiber, matchedFiber, "" + newChild);
+        } else {
+            const matchedFiber = 
+            existingChildren.get(newChild.key === null ? newIdx : newChild.key) || 
+            null;
+            return updateElement(returnFiber, matchedFiber, newChild);
+        }
+    }
     function reconcileChildrenArray(
         returnFiber: Fiber,
         currentFirstChild: Fiber | null,
@@ -130,9 +257,60 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
         let previousNewFiber: Fiber | null = null;
 
         let oldFiber = currentFirstChild;
+        let nextOldFiber = null;
+        let lastPlacedIndex = 0;
 
         let newIdx = 0;
 
+        // old 0 1 2 3 4
+        // new 0 1 2 3 稳定
+
+        // new 3 1 2 4 这种情况比较少
+        // ! 1. 从左往右遍历 按位置比较 如果可以复用就复用 如果不能复用就退出本轮循环
+        for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
+            if (oldFiber.index > newIdx) {
+                nextOldFiber = oldFiber;
+                oldFiber = null; 
+            } else {
+                nextOldFiber = oldFiber.sibling;
+            }
+            const newFiber = updateSlot(returnFiber, oldFiber, newChildren[newIdx]);
+            if (newFiber === null) {
+               if (oldFiber === null) {
+                   oldFiber = nextOldFiber;
+               }
+               break;
+            }
+
+            if (shouldTrackSideEffects) {
+                if (oldFiber && newFiber?.alternate === null) {
+                    // 新增
+                    deleteChild(returnFiber, oldFiber);
+                }
+            }
+
+            // 组件更新节点节点前后位置不一致，需要移动
+            lastPlacedIndex = placeChild(newFiber as Fiber, lastPlacedIndex, newIdx);
+
+            if (previousNewFiber === null) {
+                resultingFirstChild = newFiber as Fiber;
+            } else {
+                previousNewFiber.sibling = newFiber as Fiber;
+            }
+            previousNewFiber = newFiber as Fiber;
+
+            oldFiber = nextOldFiber;
+        }
+
+        // * vue 因为vue采用的是数组 从右往左遍历一轮 如果找到就复用 如果没有就退出本轮循环
+
+        // ! 2.1 如果新节点没了， 但是老节点还有，删除老节点
+        if (newIdx === newChildren.length) {
+            deleteRemainingChildren(returnFiber, oldFiber as Fiber);
+            return resultingFirstChild;
+        }
+        //! 2.2 如果老节点没了， 但是新节点还有，添加新节点
+        // 初次渲染
         if (oldFiber === null) {
             // 链表
             for (; newIdx < newChildren.length; newIdx++) {
@@ -141,7 +319,9 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
                     continue;
                 }
 
-                newFiber.index = newIdx;
+                // newFiber.index = newIdx;
+                // lastPlacedIndex = placeChild(newFiber as Fiber, lastPlacedIndex, newIdx);
+                lastPlacedIndex = placeChild(returnFiber, lastPlacedIndex, newIdx);
                 if (previousNewFiber === null) {
                     resultingFirstChild = newFiber;
                 } else {
@@ -151,6 +331,35 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
 
             }
             return resultingFirstChild;
+        }
+        //! 2.3 新老节点都有，
+        const existingChildren = mapRemainingChildren(oldFiber as Fiber);
+        for (; newIdx < newChildren.length; newIdx++) {
+            const newFiber = updateFromMap(
+                existingChildren,
+                returnFiber,
+                newIdx, 
+                newChildren[newIdx]
+            )
+
+            if (newFiber !== null) {
+               if (shouldTrackSideEffects) {
+                  existingChildren.delete(newFiber.key === null ? newIdx : newFiber.key); 
+               } 
+               // 放置fiber
+               lastPlacedIndex = placeChild(returnFiber, lastPlacedIndex, newIdx);
+               if (previousNewFiber === null) {
+                   resultingFirstChild = newFiber; 
+               } else {
+                    previousNewFiber.sibling = newFiber;
+               }
+                previousNewFiber = newFiber;
+            }
+        }
+
+        // ! 2.4 删除多余的节点
+        if ( shouldTrackSideEffects ) {
+            existingChildren.forEach((child) => deleteChild(returnFiber, child));
         }
         return resultingFirstChild;
     }
