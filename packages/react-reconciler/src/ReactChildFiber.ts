@@ -183,6 +183,8 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
                 return null;
             }
         }
+
+        return null;
     }
 
     function placeChild(
@@ -240,12 +242,13 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
             // 文本节点
             const matchedFiber = existingChildren.get(newIdx) || null;
             return updateTextNode(returnFiber, matchedFiber, "" + newChild);
-        } else {
+        } else if (typeof newChild === "object" && newChild !== null) {
             const matchedFiber = 
             existingChildren.get(newChild.key === null ? newIdx : newChild.key) || 
             null;
             return updateElement(returnFiber, matchedFiber, newChild);
         }
+        return null;
     }
     function reconcileChildrenArray(
         returnFiber: Fiber,
@@ -320,8 +323,7 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
                 }
 
                 // newFiber.index = newIdx;
-                // lastPlacedIndex = placeChild(newFiber as Fiber, lastPlacedIndex, newIdx);
-                lastPlacedIndex = placeChild(returnFiber, lastPlacedIndex, newIdx);
+                lastPlacedIndex = placeChild(newFiber as Fiber, lastPlacedIndex, newIdx);
                 if (previousNewFiber === null) {
                     resultingFirstChild = newFiber;
                 } else {

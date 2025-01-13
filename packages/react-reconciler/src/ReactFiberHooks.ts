@@ -74,7 +74,7 @@ function updateWorkInProgressHook(): Hook {
 }
 // S函数 I初始值 A init函数
 export function useReducer<S, I, A>(
-    reducer: (state: S, action: A) => S,
+    reducer: ((state: S, action: A) => S) | null,
     initialArg: I,
     init?: (initialArg: I) => S
 ) {
@@ -105,7 +105,7 @@ export function useReducer<S, I, A>(
 function dispatchReducerAction<S, I, A> (
     fiber: Fiber,
     hook: Hook,
-    reducer: (state: S, action: A) => S,
+    reducer: ((state: S, action: A) => S) | null,
     action: any
 ) {
     // 通用 考虑useState函数和useReducer函数
@@ -118,7 +118,7 @@ function dispatchReducerAction<S, I, A> (
         fiber.sibling.alternate = fiber.sibling
     }
     // 调度更新
-    scheduleUpdateOnFiber(root, fiber);
+    scheduleUpdateOnFiber(root, fiber, true);
 }
 
 function gerRootForUpdateFiber(sourceFiber: Fiber): FiberRoot {
@@ -129,4 +129,11 @@ function gerRootForUpdateFiber(sourceFiber: Fiber): FiberRoot {
         parent = node.return;
     }
     return node.tag === HostRoot ? node.stateNode : null;
+}
+
+export function useState<S>(initialState: (() => S) | S)  {
+    const init = isFn(initialState) ? (initialState as any) : initialState;
+    return useReducer(null, init);
+} {
+    
 }
