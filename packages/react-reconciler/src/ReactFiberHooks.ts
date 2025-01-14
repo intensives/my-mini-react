@@ -163,7 +163,7 @@ export function useMemo<T>(
 }
 
 export function areHookInputsEqual(
-    nextDeps: Array<any>, 
+    nextDeps: Array<any>,
     prevDeps: Array<any> | null
 ): boolean {
     if (prevDeps === null) {
@@ -177,4 +177,30 @@ export function areHookInputsEqual(
         return false;
     }
     return true;
+}
+
+// 缓存函数
+export function useCallback<T>(
+    callback: T,
+    deps: Array<any> | null | void
+): T {
+    // todo
+    const hook = updateWorkInProgressHook();
+
+    const nextDeps = deps === undefined ? null : deps;
+    const prevState = hook.memoizedState;
+
+    if (prevState !== null) {
+        if (nextDeps !== null) {
+            // 依赖必是个数组
+            const prevDeps = prevState[1];
+            if (areHookInputsEqual(nextDeps, prevDeps)) {
+                // 依赖没有变化
+                return prevState[0];
+            }
+        }
+    }
+
+    hook.memoizedState = [callback, nextDeps];
+    return callback;
 }
