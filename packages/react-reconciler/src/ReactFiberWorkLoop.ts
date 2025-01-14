@@ -36,11 +36,9 @@ export function scheduleUpdateOnFiber(
 export function performConcurrentWorkOnRoot(root: FiberRoot) {
     // !1. render, 构建fiber树 VDOM (beginWork|completeWork)
 
-    console.log('%c [  ]-28', 'font-size:13px; background:pink; color:#bf2c9f;', root)
     renderRootSync(root);
 
 
-    console.log('%c [  ]-30', 'font-size:13px; background:pink; color:#bf2c9f;', root)
     const finishedWork: Fiber = root.current.alternate as Fiber;
     root.finishedWork = finishedWork;
     // !3 commit VDOM ->DOM
@@ -130,7 +128,6 @@ function completeUnitOfWork(unitOfWork: Fiber) {
     let completedWork: Fiber | null = unitOfWork;
     do {
 
-        console.log('%c [ completeUnitOfWork ]-99', 'font-size:13px; background:pink; color:#bf2c9f;', completedWork)
         const current = completedWork.alternate;
         const returnFiber = completedWork.return;
 

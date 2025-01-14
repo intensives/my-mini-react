@@ -200,15 +200,15 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
         // 判断节点位置是否发送相对位置变化， 是否需要移动
         const current = newFiber.alternate;
 
-        if (current!== null) {
+        if (current !== null) {
             const oldIndex = current.index;
             if (oldIndex < lastPlacedIndex) {
-                // 不需要移动
+                // 需要移动
                 newFiber.flags |= Placement;
                 return lastPlacedIndex;
             } else {
-                // 需要移动
-                return lastPlacedIndex;
+                // 不需要移动
+                return oldIndex;
             }
         } else {
             // 节点新增
@@ -349,7 +349,7 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
                   existingChildren.delete(newFiber.key === null ? newIdx : newFiber.key); 
                } 
                // 放置fiber
-               lastPlacedIndex = placeChild(returnFiber, lastPlacedIndex, newIdx);
+               lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx);
                if (previousNewFiber === null) {
                    resultingFirstChild = newFiber; 
                } else {

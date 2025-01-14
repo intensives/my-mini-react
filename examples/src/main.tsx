@@ -33,14 +33,23 @@ class ClassComponent extends Component {
 //     </div>
 //   );
 // } 
+function App() {
+  return (
+    <>
+      <li>item1</li>
+      <li>item2</li>
+      <li>item3</li>
+    </>
+  )
+}
 
 function FunctionComponent() {
   const [count1, setCount1] = useReducer((x) => x + 1, 1);
   const [count2, setCount2] = useState(1);
   const _cls = count2 % 2 === 0 ? "red green_bg" : "green red_bg";
   // const arr = count1 % 2 === 0 ? [0, 1, 2, 3, 4] : [0, 1, 2, 3];
-  const arr = count1 % 2 === 0 ? [0, 1, 2, 3, 4] : [0, 1, 2, 4];
-  // const arr = count1 % 2 === 0 ? [0, 1, 2, 3, 4] : [3, 1, 0, 4, 2];
+  // const arr = count1 % 2 === 0 ? [0, 1, 2, 3, 4] : [0, 1, 2, 4];
+  const arr = count1 % 2 === 0 ? [0, 1, 2, 3, 4] : [3, 1, 0, 4, 2];
   // old 0, 1, 2, 4
   // new 0, 1, 2, 3, 4
   // 1个before 4

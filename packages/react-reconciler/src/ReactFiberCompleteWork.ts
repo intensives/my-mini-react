@@ -91,7 +91,7 @@ function finalizeInitialChildren(
         if (propKey === 'children') {
             if (isStr(nextProp) || isNum(nextProp)) {
                 // 文本节点
-                domElement.textContent = String(nextProp);
+                domElement.textContent = nextProp + "";
             }
         } else {
             // 设置事件
