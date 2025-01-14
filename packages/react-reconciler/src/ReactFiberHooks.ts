@@ -18,7 +18,7 @@ export function renderWithHooks<Props>(
     workInProgress: Fiber,
     Component: any,
     props: Props,
-) : any{
+): any {
     currentlyRenderingFiber = workInProgress;
     workInProgress.memoizedState = null;
 
@@ -94,15 +94,15 @@ export function useReducer<S, I, A>(
     // ! 3. 调度更新 dispatch
     // 柯里化 这样也可以
     const dispatch = dispatchReducerAction.bind(
-        null, 
-        currentlyRenderingFiber!, 
-        hook, 
+        null,
+        currentlyRenderingFiber!,
+        hook,
         reducer as any
     );
     return [hook.memoizedState, dispatch];
 }
 
-function dispatchReducerAction<S, I, A> (
+function dispatchReducerAction<S, I, A>(
     fiber: Fiber,
     hook: Hook,
     reducer: ((state: S, action: A) => S) | null,
@@ -112,7 +112,7 @@ function dispatchReducerAction<S, I, A> (
     hook.memoizedState = reducer ? reducer(hook.memoizedState, action) : action;
 
     const root = gerRootForUpdateFiber(fiber);
-    
+
     fiber.alternate = { ...fiber };
     if (fiber.sibling) {
         fiber.sibling.alternate = fiber.sibling
@@ -124,16 +124,57 @@ function dispatchReducerAction<S, I, A> (
 function gerRootForUpdateFiber(sourceFiber: Fiber): FiberRoot {
     let node = sourceFiber;
     let parent = node.return;
-    while (parent !== null) { 
+    while (parent !== null) {
         node = parent;
         parent = node.return;
     }
     return node.tag === HostRoot ? node.stateNode : null;
 }
 
-export function useState<S>(initialState: (() => S) | S)  {
+export function useState<S>(initialState: (() => S) | S) {
     const init = isFn(initialState) ? (initialState as any) : initialState;
     return useReducer(null, init);
-} {
-    
+}
+
+export function useMemo<T>(
+    nextCreate: () => T,
+    deps: Array<any> | null | void
+): T {
+    // todo
+    const hook = updateWorkInProgressHook();
+
+    const nextDeps = deps === undefined ? null : deps;
+    const prevState = hook.memoizedState;
+
+    if (prevState !== null) {
+        if (nextDeps !== null) {
+            // 依赖必是个数组
+            const prevDeps = prevState[1];
+            if (areHookInputsEqual(nextDeps, prevDeps)) {
+                // 依赖没有变化
+                return prevState[0];
+            }
+        }
+    }
+
+    const nextValue = nextCreate();
+    hook.memoizedState = [nextValue, nextDeps];
+    return nextValue;
+}
+
+export function areHookInputsEqual(
+    nextDeps: Array<any>, 
+    prevDeps: Array<any> | null
+): boolean {
+    if (prevDeps === null) {
+        return false;
+    }
+
+    for (let i = 0; i < prevDeps.length && i < nextDeps.length; i++) {
+        if (Object.is(nextDeps[i], prevDeps[i])) {
+            continue;
+        }
+        return false;
+    }
+    return true;
 }
