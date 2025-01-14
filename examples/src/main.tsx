@@ -6,6 +6,7 @@ import {
   useState,
   useMemo,
   useCallback,
+  useRef,
 } from "../which-react";
 import "./index.css";
 
@@ -97,34 +98,18 @@ function App() {
 function FunctionComponent() {
   const [count1, setCount] = useReducer((x) => x + 1, 0);
   const [count2, setCount2] = useState(0);
-  // const addClick = () => {
-  // // ajax('xxx/'+count1)
-  // let sum = 0;
-  // for (let i = 0; i < count1; i++) {
-  // sum += i;
-  // }
-  // return sum;
-  // };
-  // 缓存addClick函数
-  const addClick = useCallback((val: number) => {
-    let sum = 0;
-    for (let i = 0; i < count1; i++) {
-      sum += i;
-    }
-    return sum + val;
-  }, [count1]);
-  const expensive = useMemo(() => {
-    //只有addClick变化，这⾥才重新执⾏
-    console.log("compute");
-    return addClick(3);
-  }, [addClick]);
+
+  let ref = useRef(0);
+  function handleClick() {
+    ref.current = ref.current + 1;
+    console.log("You clicked" + ref.current + "times");
+  }
   return (
     <div className="border">
       <h1>函数组件</h1>
-      <p>{expensive}</p>
       <button onClick={() => setCount()}>{count1}</button>
       <button onClick={() => setCount2(count2 + 1)}>{count2}</button>
-      {/* <Child addClick={addClick} /> */}
+      <button onClick={handleClick}>click</button>
     </div>
   );
 }

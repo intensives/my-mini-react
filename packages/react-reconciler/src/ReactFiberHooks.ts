@@ -204,3 +204,12 @@ export function useCallback<T>(
     hook.memoizedState = [callback, nextDeps];
     return callback;
 }
+
+// 实现useRef
+export function useRef<T>(initialValue: T) {
+    const hook = updateWorkInProgressHook();
+    if (currentHook === null) {
+        hook.memoizedState = { current: initialValue };
+    }
+    return hook.memoizedState;
+}
