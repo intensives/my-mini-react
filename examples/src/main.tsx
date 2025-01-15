@@ -7,6 +7,8 @@ import {
   useMemo,
   useCallback,
   useRef,
+  useEffect,
+  useLayoutEffect,
 } from "../which-react";
 import "./index.css";
 
@@ -99,6 +101,13 @@ function FunctionComponent() {
   const [count1, setCount] = useReducer((x) => x + 1, 0);
   const [count2, setCount2] = useState(0);
 
+  useLayoutEffect(() => {
+    console.log("useLayoutEffect"); //sy-log
+  }, [count1]);
+
+  useEffect(() => {
+    console.log("useEffect"); //sy-log 
+  }, [count2]);
   let ref = useRef(0);
   function handleClick() {
     ref.current = ref.current + 1;
@@ -109,10 +118,25 @@ function FunctionComponent() {
       <h1>函数组件</h1>
       <button onClick={() => setCount()}>{count1}</button>
       <button onClick={() => setCount2(count2 + 1)}>{count2}</button>
-      <button onClick={handleClick}>click</button>
+      {/* <button onClick={handleClick}>click</button> */}
+      <Child count1={count1} count2={count2} />
     </div>
   );
 }
+function Child({ count1, count2 }: { count1: number; count2: number }) {
+  // layout effect
+  useLayoutEffect(() => {
+    console.log("useLayoutEffect Child"); //sy-log
+  }, [count1]);
+  // passive effect
+  useEffect(() => {
+    console.log("useEffect Child"); //sy-log
+  }, [count2]);
+  return (
+    <div>Child</div>
+  )
+}
+
 // // memo 允许组件在 props 没有改变的情况下跳过重新渲染。
 // const Child = memo(({ addClick }: { addClick: () => number }) => {
 // console.log("child render"); //sy-log

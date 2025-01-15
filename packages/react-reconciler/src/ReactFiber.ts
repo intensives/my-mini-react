@@ -55,6 +55,9 @@ function FiberNode(tag: WorkTag, pendingProps: any, key: null | string) {
 
     // 记录需要删除的节点
     this.deletions = null;
+
+    // 记录useEffect
+    this.updateQueue = null;
 }
 
 // 根据ReactElement创建fiberFrom节点
@@ -122,7 +125,7 @@ export function createWorkInProgress(current: Fiber, pendingProps: any): Fiber {
     workInProgress.child = current.child;
     workInProgress.memoizedProps = current.memoizedProps;
     workInProgress.memoizedState = current.memoizedState;
-    // workInProgress.updateQueue = current.updateQueue;
+    workInProgress.updateQueue = current.updateQueue;
 
     workInProgress.sibling = current.sibling;
     workInProgress.index = current.index;

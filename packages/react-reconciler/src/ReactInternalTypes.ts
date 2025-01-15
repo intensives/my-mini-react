@@ -38,6 +38,9 @@ export type Fiber = {
 
     // 记录需要删除的节点数组
     deletions: Array<Fiber> | null;
+
+    // 记录useEffect
+    updateQueue: any;
 };
 
 export type Container = Element | Document | DocumentFragment;

@@ -1,7 +1,8 @@
 import { isHost } from "./ReactFiberCompleteWork";
-import { ChildDeletion, Placement } from "./ReactFiberFlags";
+import { ChildDeletion, Passive, Placement, Update } from "./ReactFiberFlags";
+import { HookFlags, HookLayout, HookPassive } from "./ReactHookEffectTags";
 import { Fiber, FiberRoot } from "./ReactInternalTypes";
-import { HostComponent, HostRoot, HostText } from "./ReactWorkTags";
+import { FunctionComponent, HostComponent, HostRoot, HostText } from "./ReactWorkTags";
 // 递归遍历fiber树 前面递归 后面构建fiber树
 export function commitMutationEffects(root: FiberRoot, finishedWork: Fiber) {
     recursivelyTraverseMutationEffects(root, finishedWork);
@@ -20,7 +21,7 @@ function recursivelyTraverseMutationEffects(
 // fiber.flags
 // 新增插入
 function commitReconciliationEffects(finishedWork: Fiber) {
-    const flags = finishedWork.flags; 
+    const flags = finishedWork.flags;
     if (flags & Placement) {
         commitPlacement(finishedWork);
         finishedWork.flags &= ~Placement;
@@ -34,12 +35,36 @@ function commitReconciliationEffects(finishedWork: Fiber) {
         finishedWork.flags &= ~ChildDeletion;
         finishedWork.deletions = null;
     }
+
+    if (flags & Update) {
+        if (finishedWork.tag === FunctionComponent) {
+            // 执行 layout effect
+            commitHookEffectListMount(HookLayout, finishedWork);
+            finishedWork.flags &= ~Update;
+        }
+    }
+}
+
+function commitHookEffectListMount(hookFlags: HookFlags, finishedWork: Fiber) {
+    const updateQueue = finishedWork.updateQueue;
+    let lastEffect = updateQueue!.lastEffect;
+    if (lastEffect !== null) {
+        const firstEffect = lastEffect.next;
+        let effect = firstEffect;
+        do {
+            if ((effect.tag & hookFlags) === hookFlags) {
+                const create = effect.create;
+                create();
+            }
+            effect = effect.next;
+        } while (effect !== firstEffect);
+    }
 }
 
 // 删除dom节点
 function commitDeletions(
-    deletions: Array<Fiber> | null, 
-    parentDom: Element | DocumentFragment | Document 
+    deletions: Array<Fiber> | null,
+    parentDom: Element | DocumentFragment | Document
 ) {
     deletions!.forEach(deletion => {
         parentDom.removeChild(getStateNode(deletion));
@@ -47,7 +72,7 @@ function commitDeletions(
 }
 
 // 获取fiber对应的dom节点
-function getStateNode(fiber: Fiber)   {
+function getStateNode(fiber: Fiber) {
     let node = fiber;
     while (1) {
         if (isHost(node) && node.stateNode) {
@@ -63,41 +88,41 @@ function getStateNode(fiber: Fiber)   {
 function getHostSibling(fiber: Fiber) {
     let node = fiber;
     sibling: while (1) {
-       while (node.sibling === null) {
-         if (node.return === null || isHostParent(node.return)) {
-            return null;
-         }
-         node = node.return;
-       }
-       node = node.sibling; 
-       while ( !isHost(node) ) {
-          // 新增插入|移动位置
-          if (node.flags & Placement) {
-              continue sibling;
-          }
-          if (node.child === null) {
-             continue sibling; 
-          } else {
-              node = node.child;
-          }
-       }
+        while (node.sibling === null) {
+            if (node.return === null || isHostParent(node.return)) {
+                return null;
+            }
+            node = node.return;
+        }
+        node = node.sibling;
+        while (!isHost(node)) {
+            // 新增插入|移动位置
+            if (node.flags & Placement) {
+                continue sibling;
+            }
+            if (node.child === null) {
+                continue sibling;
+            } else {
+                node = node.child;
+            }
+        }
 
-       // hostComponent|hostText
-       if (!(node.flags & Placement)) {
-              return node.stateNode;
-       }
+        // hostComponent|hostText
+        if (!(node.flags & Placement)) {
+            return node.stateNode;
+        }
     }
     return null;
 }
 
 // 是否存在before
 function insertOrAppendPlacementNode(
-    node: Fiber, 
+    node: Fiber,
     before: Element,
     parent: Element
 ) {
     if (before) {
-        parent.insertBefore(getStateNode(node), before); 
+        parent.insertBefore(getStateNode(node), before);
     } else {
         parent.appendChild(getStateNode(node));
     }
@@ -144,4 +169,33 @@ function getHostParentFiber(fiber: Fiber): Fiber {
 // 检查 fiber 是否可以是⽗ dom 节点
 function isHostParent(fiber: Fiber): boolean {
     return fiber.tag === HostComponent || fiber.tag === HostRoot;
+}
+
+// todo 执行effect
+export function flushPassiveEffects(finishedWork: Fiber) {
+    recursivelyTraversePassiveMountEffects(finishedWork);
+    commitPassiveEffects(finishedWork);
+}
+
+function recursivelyTraversePassiveMountEffects(finishedWork: Fiber) {
+    let child = finishedWork.child;
+    while (child !== null) {
+        // 遍历子节点，检查子节点
+        recursivelyTraversePassiveMountEffects(child);
+        // 如果有passive effect，执行
+        commitPassiveEffects(finishedWork);
+        child = child.sibling;
+    }
+}
+
+function commitPassiveEffects(finishedWork: Fiber) {
+    switch (finishedWork.tag) {
+        case FunctionComponent: {
+            if (finishedWork.flags & Passive) {
+                commitHookEffectListMount(HookPassive, finishedWork);
+                finishedWork.flags &= ~Passive;
+            }
+            break;
+        }
+    }
 }
