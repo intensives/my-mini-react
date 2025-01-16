@@ -4,6 +4,8 @@ import { scheduleUpdateOnFiber } from "./ReactFiberWorkLoop";
 import { HostRoot } from "./ReactWorkTags";
 import { Flags, Passive, Update } from "./ReactFiberFlags";
 import { HookFlags, HookLayout, HookPassive } from "./ReactHookEffectTags";
+import { ReactContext } from "shared/ReactTypes";
+import { readContext } from "./ReactFiberNewContext";
 
 type Hook = {
     memoizedState: any;
@@ -32,6 +34,7 @@ export function renderWithHooks<Props>(
     workInProgress.memoizedState = null;
     workInProgress.updateQueue = null;
 
+    // 执行函数组件
     let children = Component(props);
     // 置为空 开头不需要本来就是空
     finishRenderingHooks();
@@ -294,6 +297,12 @@ function pushEffect(
         componentUpdateQueue.lastEffect = effect;
     }
 
-
     return effect;
+}
+
+// 不同文件使用context需要导入
+export function useContext<T>(context: ReactContext<T>): T {
+    // todo
+    // 带_的值不是不能访问吗？？？
+    return readContext(context);
 }

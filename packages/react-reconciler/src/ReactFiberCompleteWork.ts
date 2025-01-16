@@ -1,6 +1,7 @@
 import { isNum, isStr } from 'shared/utils';
 import type { Fiber } from './ReactInternalTypes';
-import { ClassComponent, Fragment, FunctionComponent, HostComponent, HostRoot, HostText } from './ReactWorkTags';
+import { ClassComponent, ContextProvider, Fragment, FunctionComponent, HostComponent, HostRoot, HostText } from './ReactWorkTags';
+import { popProvider } from './ReactFiberNewContext';
 export function completeWork(
     current: Fiber | null,
     workInProgress: Fiber
@@ -11,6 +12,11 @@ export function completeWork(
         case ClassComponent:
         case FunctionComponent:
         case HostRoot: {
+            return null;
+        }
+        case ContextProvider: {
+            // 恢复context的默认值
+            popProvider(workInProgress.type._context);
             return null;
         }
         // 并没有将其挂载到dom上，而是在stateNode上挂载了子节点
@@ -60,7 +66,7 @@ function updateHostComponent(
 }
 
 function finalizeInitialChildren(
-    domElement: Element, 
+    domElement: Element,
     prevProps: any,
     nextProps: any
 ) {

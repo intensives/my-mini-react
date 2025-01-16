@@ -9,6 +9,8 @@ import {
   useRef,
   useEffect,
   useLayoutEffect,
+  useContext,
+  createContext,
 } from "../which-react";
 import "./index.css";
 
@@ -27,15 +29,15 @@ let fragment1 = (
 //     <h3>2</h3>
 //   </Fragment>
 // )
-class ClassComponent extends Component {
-  render() {
-    return (
-      <div>
-        <h3> {this.props.name}</h3>
-      </div>
-    );
-  }
-}
+// class ClassComponent extends Component {
+//   render() {
+//     return (
+//       <div>
+//         <h3> {this.props.name}</h3>
+//       </div>
+//     );
+//   }
+// }
 
 // function FunctionComponent( { name }: {name: string}) {
 //   return (
@@ -97,44 +99,71 @@ function App() {
 //   );
 // }
 
+// !1. 创建context对象
+const CountContext = createContext(100); // 默认值
+const ThemeContext = createContext("red"); // 默认值
+
+// !2. 创建Provider组件，用于向后代组件传递value
 function FunctionComponent() {
-  const [count1, setCount] = useReducer((x) => x + 1, 0);
-  const [count2, setCount2] = useState(0);
+  const [count, setCount] = useReducer((x) => x + 1, 0);
 
-  useLayoutEffect(() => {
-    console.log("useLayoutEffect"); //sy-log
-  }, [count1]);
-
-  useEffect(() => {
-    console.log("useEffect"); //sy-log 
-  }, [count2]);
-  let ref = useRef(0);
-  function handleClick() {
-    ref.current = ref.current + 1;
-    console.log("You clicked" + ref.current + "times");
-  }
   return (
     <div className="border">
       <h1>函数组件</h1>
-      <button onClick={() => setCount()}>{count1}</button>
-      <button onClick={() => setCount2(count2 + 1)}>{count2}</button>
-      {/* <button onClick={handleClick}>click</button> */}
-      <Child count1={count1} count2={count2} />
+      <button onClick={() => setCount()}>{count}</button>
+
+      {/* [green, count,count+1] */}
+      <ThemeContext.Provider value="green">
+        <CountContext.Provider value={count}>
+          <CountContext.Provider value={count + 1}>
+            <Child />
+          </CountContext.Provider>
+          <Child />
+        </CountContext.Provider>
+      </ThemeContext.Provider>
     </div>
   );
 }
-function Child({ count1, count2 }: { count1: number; count2: number }) {
-  // layout effect
-  useLayoutEffect(() => {
-    console.log("useLayoutEffect Child"); //sy-log
-  }, [count1]);
-  // passive effect
-  useEffect(() => {
-    console.log("useEffect Child"); //sy-log
-  }, [count2]);
+
+function Child() {
+  // !3. 后代组件消费value，寻找的最近的匹配的Provider组件的value
+  const count = useContext(CountContext);
+  const theme = useContext(ThemeContext);
   return (
-    <div>Child</div>
-  )
+    <div className={"border " + theme}>
+      <h1>Child</h1>
+
+      <p>第一种消费方式：useContext</p>
+      <p>{count}</p>
+
+      <p>第二种消费方式：Consumer</p>
+      <ThemeContext.Consumer>
+        {(theme) => (
+          <div className={theme}>
+            <CountContext.Consumer>
+              {(value) => <p>{value}</p>}
+            </CountContext.Consumer>
+          </div>
+        )}
+      </ThemeContext.Consumer>
+
+      <p>第三种消费方式：contextType，只能消费单一的context来源</p>
+      <ClassComponent />
+    </div>
+  );
+}
+
+class ClassComponent extends Component {
+  static contextType = CountContext;
+  render() {
+    console.log("ClassComponent render", this.context);
+    return (
+      <div className="border">
+        <h1>类组件</h1>
+        <p>{this.context as number}</p>
+      </div>
+    );
+  }
 }
 
 // // memo 允许组件在 props 没有改变的情况下跳过重新渲染。

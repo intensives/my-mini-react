@@ -1,8 +1,13 @@
 import { isNum, isStr } from 'shared/utils';
 import type { Fiber } from './ReactInternalTypes';
-import { ClassComponent, Fragment, FunctionComponent, HostComponent, HostRoot, HostText } from './ReactWorkTags';
+import { ClassComponent, ContextConsumer, ContextProvider, Fragment, FunctionComponent, HostComponent, HostRoot, HostText } from './ReactWorkTags';
 import { reconcileChildFibers, mountChildFibers } from './ReactChildFiber';
 import { renderWithHooks } from './ReactFiberHooks';
+import {
+    pushProvider,
+    popProvider,
+    readContext,
+} from "./ReactFiberNewContext";
 // !1.处理当前fiber, 不同组件类型对应不同的处理逻辑
 // !2. 返回子节点的child
 export function beginWork(
@@ -23,6 +28,11 @@ export function beginWork(
             return updateClassComponent(current, workInProgress);
         case FunctionComponent:
             return updateFunctionComponent(current, workInProgress);
+        case ContextProvider:
+            return updateContextProvider(current, workInProgress);
+        case ContextConsumer:
+            return updateContextConsumer(current, workInProgress);
+        // todo
     }
     throw new Error(
         `Unknown unit of work tag (${workInProgress.tag}). This error is l
@@ -69,10 +79,17 @@ function updateHostFragment(current: Fiber | null, workInProgress: Fiber) {
 
 function updateClassComponent(current: Fiber | null, workInProgress: Fiber) {
     const { type, pendingProps } = workInProgress;
+    const context = type.contextType;
+    const newValue = readContext(context);
+    let instance = workInProgress.stateNode;
+    if (current === null) {
+        // 初始化
+        instance = new type(pendingProps);
+        workInProgress.stateNode = instance;
+    }
     // 构造一个类对象
-    const instance = new type(pendingProps);
     // workInProgress.stateNode = instance;
-
+    instance.context = newValue;
     const children = instance.render();
 
     reconcileChildren(current, workInProgress, children);
@@ -88,6 +105,35 @@ function updateFunctionComponent(current: Fiber | null, workInProgress: Fiber) {
     // workInProgress.stateNode = instance;
 
     reconcileChildren(current, workInProgress, children);
+    return workInProgress.child;
+}
+
+function updateContextProvider(current: Fiber | null, workInProgress: Fiber) {
+    // Provider === workInProgress 组件
+    const context = workInProgress.type._context;
+    const value = workInProgress.pendingProps.value; // props
+
+    // 存储context，value，供子组件使用
+    pushProvider(context, value);
+    reconcileChildren(
+        current,
+        workInProgress,
+        workInProgress.pendingProps.children
+    );
+    return workInProgress.child;
+}
+
+function updateContextConsumer(current: Fiber | null, workInProgress: Fiber) {
+    const context = workInProgress.type;
+    const newValue = readContext(context);
+
+    const render = workInProgress.pendingProps.children;
+    const newChildren = render(newValue);
+    reconcileChildren(
+        current,
+        workInProgress,
+        newChildren 
+    )
     return workInProgress.child;
 }
 // 协调子节点 构建新的fiber树
