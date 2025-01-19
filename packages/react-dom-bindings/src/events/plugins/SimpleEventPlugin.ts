@@ -11,6 +11,7 @@ import {
 } from "../DOMPluginEventSystem";
 
 import { IS_CAPTURE_PHASE, type EventSystemFlags } from "../EventSystemFlags";
+import { SyntheticEvent, SyntheticMouseEvent } from "../SyntheticEvent";
 
 function extractEvents(
     dispatchQueue: DispatchQueue,
@@ -25,6 +26,28 @@ function extractEvents(
     const reactName = topLevelEventsToReactNames.get(domEventName);
     if (reactName === undefined) {
         return;
+    }
+
+    let SyntheticEventCtor = SyntheticEvent;
+    switch (domEventName) {
+        case "click":
+            // unwanted click events.
+            // TODO: Fixed in https://phabricator.services.mozilla.com/D2679 // probably remove.
+            if (nativeEvent.button === 2) {
+                return;
+            }
+        /* falls through */
+        case "auxclick":
+        case "dblclick":
+        case "mousedown":
+        case "mousemove":
+        case "mouseup":
+        // TODO: Disabled elements should not respond to mouse events /* falls through */
+        case "mouseout":
+        case "mouseover":
+        case "contextmenu":
+            SyntheticEventCtor = SyntheticMouseEvent;
+            break;
     }
 
     const inCapturePhase = (eventSystemFlags & IS_CAPTURE_PHASE) !== 0;
@@ -44,7 +67,14 @@ function extractEvents(
 
     // 添加到到事件队列
     if (listeners.length > 0) {
-        dispatchQueue.push({ event: nativeEvent, listeners });
+        const event: ReactSyntheticEvent = new SyntheticEventCtor(
+            reactName,
+            domEventName,
+            null,
+            nativeEvent,
+            nativeEventTarget
+        );
+        dispatchQueue.push({ event, listeners });
     }
 }
 

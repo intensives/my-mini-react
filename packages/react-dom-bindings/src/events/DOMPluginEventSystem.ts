@@ -7,6 +7,7 @@ import { createEventListenerWrapperWithPriority } from "./ReactDOMEventListener"
 import type { Fiber } from "react-reconciler/src/ReactInternalTypes";
 import { HostComponent } from "react-reconciler/src/ReactWorkTags";
 import getListener  from "./getListener";
+import { ReactSyntheticEvent } from "./ReactSyntheticEventType";
 
 export type AnyNativeEvent = Event | KeyboardEvent | MouseEvent | TouchEvent;
 
@@ -16,7 +17,7 @@ export type DispatchListener = {
     currentTarget: EventTarget;
 };
 type DispatchEntry = {
-    event: AnyNativeEvent;
+    event: ReactSyntheticEvent;
     listeners: Array<DispatchListener>;
 };
 export type DispatchQueue = Array<DispatchEntry>;
