@@ -2,6 +2,7 @@ import type { Container, FiberRoot } from "react-reconciler/src/ReactInternalTyp
 import { createFiberRoot } from "react-reconciler/src/ReactFiberRoot";
 import { updateContainer } from "react-reconciler/src/ReactFiberReconciler";
 import type { ReactNodeList } from 'shared/ReactTypes';
+import { listenToAllSupportedEvents } from "react-dom-bindings/src/events/DOMPluginEventSystem";
 
 // 为什么ReactNodeList不是ReactNode[]类型呢？
 type RootType = {
@@ -19,6 +20,7 @@ ReactDOMRoot.prototype.render = function (children: ReactNodeList) {
 
 export function createRoot(container: Container): RootType {
     const root: FiberRoot = createFiberRoot(container);
+    listenToAllSupportedEvents(container);
     // new 一个对象 js版本的class
     return new (ReactDOMRoot as any)(root);
 }

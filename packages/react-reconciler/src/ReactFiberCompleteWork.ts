@@ -2,6 +2,7 @@ import { isNum, isStr } from 'shared/utils';
 import type { Fiber } from './ReactInternalTypes';
 import { ClassComponent, ContextProvider, Fragment, FunctionComponent, HostComponent, HostRoot, HostText } from './ReactWorkTags';
 import { popProvider } from './ReactFiberNewContext';
+import { precacheFiberNode, updateFiberProps } from 'react-dom-bindings/src/client/ReactDOMComponentTree';
 export function completeWork(
     current: Fiber | null,
     workInProgress: Fiber
@@ -35,10 +36,14 @@ export function completeWork(
                 appendAllChildren(instance, workInProgress);
                 workInProgress.stateNode = instance;
             }
+            precacheFiberNode(workInProgress, workInProgress.stateNode as Element);
+            updateFiberProps(workInProgress.stateNode as Element, newProps);
             return null;
         }
         case HostText: {
             workInProgress.stateNode = document.createTextNode(newProps);
+            precacheFiberNode(workInProgress, workInProgress.stateNode as Element);
+            updateFiberProps(workInProgress.stateNode as Element, newProps);
             return null;
         }
             throw new Error(
@@ -102,7 +107,7 @@ function finalizeInitialChildren(
         } else {
             // 设置事件
             if (propKey === 'onClick') {
-                domElement.addEventListener('click', nextProp);
+                // domElement.addEventListener('click', nextProp);
             } else {
                 // 设置属性
                 (domElement as any)[propKey] = nextProp;
