@@ -2,9 +2,9 @@ import { ReactElement } from "shared/ReactTypes";
 import { NoFlags } from "./ReactFiberFlags";
 import type { Fiber } from './ReactInternalTypes'
 import { isFn, isStr } from 'shared/utils';
-import { ClassComponent, ContextConsumer, ContextProvider, Fragment, FunctionComponent, HostComponent, HostText } from "./ReactWorkTags";
+import { ClassComponent, ContextConsumer, ContextProvider, Fragment, FunctionComponent, HostComponent, HostText, MemoComponent } from "./ReactWorkTags";
 import { IndeterminateComponent, WorkTag } from "./ReactWorkTags";
-import { REACT_CONTEXT_TYPE, REACT_FRAGMENT_TYPE, REACT_PROVIDER_TYPE } from "shared/ReactSymbols";
+import { REACT_CONTEXT_TYPE, REACT_FRAGMENT_TYPE, REACT_MEMO_TYPE, REACT_PROVIDER_TYPE } from "shared/ReactSymbols";
 
 // 创建一个fiber节点
 export function createFiber(
@@ -93,6 +93,8 @@ export function createFiberFromTypeAndProps(
         fiberTag = ContextProvider;
     } else if(type.$$typeof === REACT_CONTEXT_TYPE) {
         fiberTag = ContextConsumer;
+    } else if (type.$$typeof === REACT_MEMO_TYPE) {
+        fiberTag = MemoComponent;
     }
     const fiber = createFiber(fiberTag, pendingProps, key);
     fiber.elementType = type;

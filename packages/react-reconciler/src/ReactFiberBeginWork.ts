@@ -1,6 +1,6 @@
 import { isNum, isStr } from 'shared/utils';
 import type { Fiber } from './ReactInternalTypes';
-import { ClassComponent, ContextConsumer, ContextProvider, Fragment, FunctionComponent, HostComponent, HostRoot, HostText } from './ReactWorkTags';
+import { ClassComponent, ContextConsumer, ContextProvider, Fragment, FunctionComponent, HostComponent, HostRoot, HostText, MemoComponent } from './ReactWorkTags';
 import { reconcileChildFibers, mountChildFibers } from './ReactChildFiber';
 import { renderWithHooks } from './ReactFiberHooks';
 import {
@@ -32,6 +32,8 @@ export function beginWork(
             return updateContextProvider(current, workInProgress);
         case ContextConsumer:
             return updateContextConsumer(current, workInProgress);
+        case MemoComponent:
+            return updateMemoComponent(current, workInProgress);
         // todo
     }
     throw new Error(
@@ -135,6 +137,10 @@ function updateContextConsumer(current: Fiber | null, workInProgress: Fiber) {
         newChildren 
     )
     return workInProgress.child;
+}
+
+function updateMemoComponent(current: Fiber | null, workInProgress: Fiber) {
+    // 判断是不是初次渲染
 }
 // 协调子节点 构建新的fiber树
 function reconcileChildren(

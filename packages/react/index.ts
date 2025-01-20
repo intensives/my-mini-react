@@ -12,3 +12,4 @@ export {
 } from "react-reconciler/src/ReactFiberHooks";
 
 export { createContext } from "./src/ReactContext";
+export { memo } from "./src/ReactMemo";

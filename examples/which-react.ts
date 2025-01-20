@@ -15,6 +15,7 @@ export {
     useLayoutEffect,
     createContext,
     useContext,
+    memo,
 } from "../packages/react";
 export * as ReactDOM from "../packages/react-dom/client";
 // 原生标签对于hostRoot 3
