@@ -106,23 +106,14 @@ const ThemeContext = createContext("red"); // 默认值
 // !2. 创建Provider组件，用于向后代组件传递value
 function FunctionComponent() {
   const [count, setCount] = useReducer((x) => x + 1, 0);
-
   return (
     <div className="border">
       <h1>函数组件</h1>
-      <button onClick={() => setCount()}>{count}</button>
-
-      {/* [green, count,count+1] */}
-      <ThemeContext.Provider value="green">
-        <CountContext.Provider value={count}>
-          <CountContext.Provider value={count + 1}>
-            <Child />
-          </CountContext.Provider>
-          <Child />
-        </CountContext.Provider>
-      </ThemeContext.Provider>
+      <button onClick={() => setCount()}>
+        {count}
+      </button>
     </div>
-  );
+  )
 }
 
 function Child() {

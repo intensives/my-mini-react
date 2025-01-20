@@ -1,6 +1,7 @@
 import { DOMEventName } from "./DOMEventNames";
 import { addEventBubbleListener, addEventCaptureListener } from "./EventListener";
 import * as SimpleEventPlugin from "./plugins/SimpleEventPlugin";
+import * as ChangeEventPlugin from "./plugins/ChangeEventPlugin";
 import { allNativeEvents } from "./EventRegistry";
 import { EventSystemFlags, IS_CAPTURE_PHASE } from "./EventSystemFlags";
 import { createEventListenerWrapperWithPriority } from "./ReactDOMEventListener";
@@ -23,7 +24,7 @@ type DispatchEntry = {
 export type DispatchQueue = Array<DispatchEntry>;
 SimpleEventPlugin.registerEvents();
 // EnterLeaveEventPlugin.registerEvents();
-// ChangeEventPlugin.registerEvents();
+ChangeEventPlugin.registerEvents();
 // SelectEventPlugin.registerEvents();
 // BeforeEventPlugin.registerEvents();
 
@@ -37,6 +38,15 @@ export function extractEvents(
     targetContainer: EventTarget
 ) {
     SimpleEventPlugin.extractEvents(
+        dispatchQueue,
+        domEventName,
+        targetInst,
+        nativeEvent,
+        nativeEventTarget,
+        eventSystemFlags,
+        targetContainer
+    );
+    ChangeEventPlugin.extractEvents(
         dispatchQueue,
         domEventName,
         targetInst,
@@ -191,3 +201,42 @@ export function accumulateSinglePhaseListeners(
     }
     return listeners;
 }
+
+// 支持冒泡、捕获
+export function accumulateTwoPhaseListeners(
+    targetFiber: Fiber | null,
+    reactName: string | null
+  ): Array<DispatchListener> {
+    const captureName = reactName !== null ? reactName + "Capture" : null;
+    let listeners: Array<DispatchListener> = [];
+  
+    let instance = targetFiber;
+  
+    while (instance !== null) {
+      const { stateNode, tag } = instance;
+      if (tag === HostComponent && stateNode !== null) {
+        const captureListener = getListener(instance, captureName as string);
+        if (captureListener !== null) {
+          // 捕获阶段
+          listeners.unshift({
+            instance,
+            listener: captureListener,
+            currentTarget: stateNode,
+          });
+        }
+        // 冒泡
+        const bubbleListener = getListener(instance, reactName as string);
+        if (bubbleListener !== null) {
+          // 捕获阶段，捕获阶段执行是从外到内，冒泡阶段是从内到外
+          listeners.unshift({
+            instance,
+            listener: bubbleListener,
+            currentTarget: stateNode,
+          });
+        }
+      }
+      instance = instance.return;
+    }
+  
+    return listeners;
+  }

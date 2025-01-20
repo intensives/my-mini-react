@@ -3,6 +3,7 @@ import type { Fiber } from './ReactInternalTypes';
 import { ClassComponent, ContextProvider, Fragment, FunctionComponent, HostComponent, HostRoot, HostText } from './ReactWorkTags';
 import { popProvider } from './ReactFiberNewContext';
 import { precacheFiberNode, updateFiberProps } from 'react-dom-bindings/src/client/ReactDOMComponentTree';
+import { registrationNameDependencies } from 'react-dom-bindings/src/events/EventRegistry';
 export function completeWork(
     current: Fiber | null,
     workInProgress: Fiber
@@ -85,8 +86,8 @@ function finalizeInitialChildren(
             }
         } else {
             // 设置事件
-            if (propKey === 'onClick') {
-                domElement.removeEventListener('click', prevProp);
+            if (registrationNameDependencies[propKey]) {
+                // domElement.removeEventListener('click', prevProp);
             } else {
                 if (!(prevProp in nextProps)) {
                     // 设置属性
@@ -106,7 +107,7 @@ function finalizeInitialChildren(
             }
         } else {
             // 设置事件
-            if (propKey === 'onClick') {
+            if (registrationNameDependencies[propKey]) {
                 // domElement.addEventListener('click', nextProp);
             } else {
                 // 设置属性
