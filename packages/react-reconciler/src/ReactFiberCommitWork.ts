@@ -61,7 +61,7 @@ function commitHookEffectListMount(hookFlags: HookFlags, finishedWork: Fiber) {
     }
 }
 
-// 删除dom节点
+// 根据fiber删除dom节点，需要找到父dom和子dom
 function commitDeletions(
     deletions: Array<Fiber> | null,
     parentDom: Element | DocumentFragment | Document

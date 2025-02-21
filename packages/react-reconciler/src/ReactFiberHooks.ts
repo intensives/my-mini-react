@@ -21,7 +21,9 @@ type Effect = {
 
 // 当前正在工作的函数组件的fiber
 let currentlyRenderingFiber: Fiber | null = null;
+// 新hook
 let workInProgressHook: Hook | null = null;
+// 老hook
 let currentHook: Hook | null = null;
 
 export function renderWithHooks<Props>(
@@ -61,7 +63,7 @@ function updateWorkInProgressHook(): Hook {
             workInProgressHook = hook = workInProgressHook.next!;
             currentHook = currentHook!.next as Hook;
         } else {
-            // 第一个hook
+            // 第一个hook 头节点
             workInProgressHook = hook = currentlyRenderingFiber!.memoizedState;
             currentHook = current.memoizedState;
         }
@@ -79,6 +81,7 @@ function updateWorkInProgressHook(): Hook {
             workInProgressHook = workInProgressHook.next = hook;
         } else {
             // 链表
+            // hook单链表的头节点
             workInProgressHook = currentlyRenderingFiber!.memoizedState = hook;
         }
 

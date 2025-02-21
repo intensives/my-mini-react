@@ -268,7 +268,8 @@ function createChildReconciler(shouldTrackSideEffects: boolean) {
         // old 0 1 2 3 4
         // new 0 1 2 3 稳定
 
-        // new 3 1 2 4 这种情况比较少
+        // new 3 1 2 4 如果每次都从头到尾遍历，比较繁琐，因为react是应用在web场景的，位置相对稳定，所以这种情况比较少
+        // 大多数实际场景，节点相对位置不变
         // ! 1. 从左往右遍历 按位置比较 如果可以复用就复用 如果不能复用就退出本轮循环
         for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
             if (oldFiber.index > newIdx) {
